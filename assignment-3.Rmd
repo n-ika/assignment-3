@@ -1,0 +1,114 @@
+---
+title: "Assignment 3"
+author: "Nika Jurov"
+date: "12/3/2018"
+output: html_document
+---
+
+```{r include=FALSE}
+library(devtools)
+library(magrittr)
+library(dplyr)
+
+devtools::install_github("ewan/stats_course", subdir="data/clark_judgments")
+
+MOP_data <- clarkjudgments::acceptability %>%
+            dplyr::filter(MOP == "MOP100")
+```
+
+* Dependent variable is **rating**. 
+* Predictor is **language**.
+
+## Question 1
+
+* distribution of ratings: inappropriate to use a linear model with Gaussian error. What is it?
+Imamo le dve kategoricni vrednosti, ki ju sicer lahko spremenimo v ena in nic vendar bodo vrednosti odvisne spremenljivke vedno v vrsti navzgor - spremenljivka rabi prediktor, glede na katerega se spremeni. Tu tega ne moremo ravno videti, ker so vse vrednosti glede na neko kategorijo v istem polju. Ostankov ne moremo videti, saj ne vemo, kaj so. Ta model ni primeren.
+
+## Question 2
+
+* ENA
+
+**H1**
+                    
+```{r}
+#nic ==> mn1 = mn2
+#permutation test: 9999 times two distributions that have 0 difference between the means
+#for N:...
+permuted_MOP <- MOP_data %>%
+                    dplyr::mutate(
+                    permuted_rating = 
+                      sample(rating, dim(MOP_data)[1])
+                    )
+good <- permuted_MOP %>%
+              dplyr::filter(
+              language == "adger-good"
+                )
+bad <- permuted_MOP %>%
+              dplyr::filter(
+              language == "adger-bad"
+                )
+mean_good <- mean(good$permuted_rating)
+mean_bad <- mean(bad$permuted_rating)
+mn_diff <- mean_good - mean_bad
+
+permuted_coef <- coef(lm(rating ~ language))[2]
+#v vektor
+
+```
+
+
+**H2**
+
+```{r}
+# mn1 - mn2 = 60
+# PERMUTE
+sd1 <- sd(good$permuted_rating)
+sd2 <- sd(bad$permuted_rating)
+mn1 <- sample(0:100, 1)
+mn2 <- mn1 - 60
+  
+# TO NE GRE TAK
+group1 <- MOP_data %>%
+              #dplyr::filter(PORPRAVI?!) %>%
+              dplyr::mutate(
+                fake_good_ranking = 
+                  rnorm(n = (dim(MOP_data)[1]/2), 
+                        mean = mn1, sd = sd1))
+                
+group1 <- MOP_data %>%
+              #dplyr::filter(PORPRAVI?!) %>%
+              dplyr::mutate(
+                fake_bad_ranking = 
+                rnorm(n = (dim(MOP_data)[1]/2), 
+                      mean = mn2, sd = sd2))
+
+#KODIRAJ V 0 in 1 ali 1,-1
+fake_coef <- coef(lm(rating ~ language))[2]
+
+#daj v vektor
+
+```
+
+```{r}
+# predstavi vse na istem plotu
+# ggplot2::ggplot()
+```
+
+
+* DVA
+
+```{r}
+# odrezi vrednosti < 0 in > 100
+# pokazi razliko med obema distrib.
+```
+
+Ce sta distribuciji blize temu, kar opazimo v resnicnih podatkih, potem to ni vec normalen zakon/Gauss, ker preprosto nimamo srednje vrednosti, ki centrira vse vrednosti naokoli z neko razliko. Imamo veliko nicel in veliko stotk, malo po in pred tem. Ce to vzamemo kot nrm. zakon, potem sklepamo, da so vrednosti tudi naokoli 0 in 100. Srednja vrednost zagotovo ne bo tam, kjer jo bomo ocenili glede na ocenjevanje, ce vzamemo to got gaussovsko distribucijo. Ja, je riziko
+
+
+## Question 3
+
+```{r}
+# 3 observations only
+# ja zagotovo mora biti popolnoma izkrivljeno
+```
+

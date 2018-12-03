@@ -1,6 +1,0 @@
----
-title: "Assignment 3"
-author: "Nika Jurov"
-date: "12/3/2018"
-output: html_document
----
