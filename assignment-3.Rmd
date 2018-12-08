@@ -21,8 +21,49 @@ MOP_data <- clarkjudgments::acceptability %>%
 
 ## Question 1
 
-* distribution of ratings: inappropriate to use a linear model with Gaussian error. What is it?
-Imamo le dve kategoricni vrednosti, ki ju sicer lahko spremenimo v ena in nic vendar bodo vrednosti odvisne spremenljivke vedno v vrsti navzgor - spremenljivka rabi prediktor, glede na katerega se spremeni. Tu tega ne moremo ravno videti, ker so vse vrednosti glede na neko kategorijo v istem polju. Ostankov ne moremo videti, saj ne vemo, kaj so. Ta model ni primeren.
+```{r}
+plot_MOP_hist <- ggplot2::ggplot(MOP_data, 
+                                 ggplot2::aes(x=rating, 
+                                              fill=language)) +
+                                 ggplot2::geom_histogram(
+                                   alpha=0.4, position="identity")
+
+
+MOP_linear <- MOP_data %>%
+              dplyr::mutate(
+                language_lin = ifelse(
+                  language == "adger-good", 1, 0
+                )
+              )
+
+lm_lin <- lm(rating ~ language_lin, data = MOP_linear)
+coef(lm_lin)[1]
+
+
+
+plot_linear_points <- ggplot2::ggplot(MOP_linear, 
+                                ggplot2::aes(y=rating, 
+                                             x=language_lin)) +
+                                ggplot2::geom_point(
+                                  alpha=0.1,
+                                  colour="darkblue"
+                                ) +
+        ggplot2::geom_abline(
+          intercept = coef(lm_lin)[1],
+          slope = coef(lm_lin)[2]
+        )
+
+plot_MOP_hist
+plot_linear_points
+```
+
+
+We can see clearly on the plots that we have two discrete categorial variables. This is also evident from inspecting the table of the data alone. The distribution of ratings is therefore dispersed according to either one value or the other (the language judged as "*good*" or "*bad*"). Thus, we obtain two vertical lines of two separate distributions that extend from 0 to 100 (0 being the lowest possible rating and 100 the highest possible rating). 
+
+The dependent variable y (*rating*) does in fact change according to the predictor: we might be able to say that more of *bad* values are towards 0 than *good* and vice versa, that more *good* values are towards 100 that *bad*. We can even plot this with a line connecting the most dense distribution. However, there are still many values that do not behave as just stated and thus the Gaussian error would be too big for each distribution. It is visible from the histogram of both subsets (language is either good or bad) that ratings can be anywhere between 0 to 100.
+
+Another problem for fitting this data into a linear model is also that there are absolutely no values below 0 and beyond 100. Because the most frequent values tend to be either around 0 or around 100 (but not below 0 and higher than 100), these are not Gaussian distributions. Finding the mean would make no sense here. 
+
 
 ## Question 2
 
