@@ -9,6 +9,10 @@ output: html_document
 library(devtools)
 library(magrittr)
 library(dplyr)
+```
+
+
+```{r include=FALSE}
 
 devtools::install_github("ewan/stats_course", subdir="data/clark_judgments")
 
@@ -16,43 +20,57 @@ MOP_data <- clarkjudgments::acceptability %>%
             dplyr::filter(MOP == "MOP100")
 ```
 
+
 * Dependent variable is **rating**. 
 * Predictor is **language**.
 
 ## Question 1
 
-```{r}
+```{r include = FALSE}
 plot_MOP_hist <- ggplot2::ggplot(MOP_data, 
                                  ggplot2::aes(x=rating, 
                                               fill=language)) +
-                                 ggplot2::geom_histogram(
-                                   alpha=0.4, position="identity")
+  ggplot2::geom_histogram(
+    alpha=0.4, position="identity")
+
+#################################
+#### recode language to 0 and 1
+################################
 
 
 MOP_linear <- MOP_data %>%
-              dplyr::mutate(
-                language_lin = ifelse(
-                  language == "adger-good", 1, 0
-                )
-              )
+  dplyr::mutate(
+    language_lin = ifelse(
+      language == "adger-good", 1, 0
+    )
+  )
+
+##############################
+#### linear model for MOP_data
+##############################
 
 lm_lin <- lm(rating ~ language_lin, data = MOP_linear)
-coef(lm_lin)[1]
 
 
+###############################################
+#### plot with dots for supposedly linear data
+###############################################
 
 plot_linear_points <- ggplot2::ggplot(MOP_linear, 
-                                ggplot2::aes(y=rating, 
-                                             x=language_lin)) +
+                                      ggplot2::aes(y=rating, 
+                                                   x=language_lin)) +
                                 ggplot2::geom_point(
                                   alpha=0.1,
                                   colour="darkblue"
                                 ) +
-        ggplot2::geom_abline(
-          intercept = coef(lm_lin)[1],
-          slope = coef(lm_lin)[2]
-        )
+                                ggplot2::geom_abline(
+                                  intercept = coef(lm_lin)[1],
+                                  slope = coef(lm_lin)[2]
+                                )
+```
 
+
+```{r}
 plot_MOP_hist
 plot_linear_points
 ```
@@ -67,83 +85,201 @@ Another problem for fitting this data into a linear model is also that there are
 
 ## Question 2
 
-* ENA
 
-**H1**
+### H1
                     
 ```{r}
-#nic ==> mn1 = mn2
-#permutation test: 9999 times two distributions that have 0 difference between the means
-#for N:...
-permuted_MOP <- MOP_data %>%
+coeficients_H1 <- rep(0, 9999)
+for (i in 1:9999) {
+          permuted_MOP <- MOP_data %>%
                     dplyr::mutate(
                     permuted_rating = 
                       sample(rating, dim(MOP_data)[1])
                     )
-good <- permuted_MOP %>%
+          coef_permuted <- coef(lm(permuted_rating ~ 
+                                   language, 
+                                   data = permuted_MOP))[2]
+          coeficients_H1[i] <- coef_permuted
+}
+
+```
+
+
+### H2
+
+```{r}
+good <- MOP_data %>%
               dplyr::filter(
               language == "adger-good"
                 )
-bad <- permuted_MOP %>%
+bad <- MOP_data %>%
               dplyr::filter(
               language == "adger-bad"
                 )
-mean_good <- mean(good$permuted_rating)
-mean_bad <- mean(bad$permuted_rating)
-mn_diff <- mean_good - mean_bad
 
-permuted_coef <- coef(lm(rating ~ language))[2]
-#v vektor
-
-```
-
-
-**H2**
-
-```{r}
-# mn1 - mn2 = 60
-# PERMUTE
-sd1 <- sd(good$permuted_rating)
-sd2 <- sd(bad$permuted_rating)
-mn1 <- sample(0:100, 1)
-mn2 <- mn1 - 60
-  
-# TO NE GRE TAK
-group1 <- MOP_data %>%
-              #dplyr::filter(PORPRAVI?!) %>%
-              dplyr::mutate(
-                fake_good_ranking = 
-                  rnorm(n = (dim(MOP_data)[1]/2), 
-                        mean = mn1, sd = sd1))
-                
-group1 <- MOP_data %>%
-              #dplyr::filter(PORPRAVI?!) %>%
-              dplyr::mutate(
-                fake_bad_ranking = 
-                rnorm(n = (dim(MOP_data)[1]/2), 
-                      mean = mn2, sd = sd2))
-
-#KODIRAJ V 0 in 1 ali 1,-1
-fake_coef <- coef(lm(rating ~ language))[2]
-
-#daj v vektor
-
+sd_good <- sd(good$rating)
+sd_bad <- sd(bad$rating)
+both_sd = c(sd_good, sd_bad)
+observed_mean_diff <- mean(good$rating) - mean(bad$rating)
 ```
 
 ```{r}
-# predstavi vse na istem plotu
-# ggplot2::ggplot()
+coeficients_H2 <- rep(0, 9999)
+
+for (i in 1:9999) {
+      mn1 <- sample(0:100, 1)
+      mn2 <- mn1 - observed_mean_diff
+      sd1 <- sample(both_sd, 1)
+      if (sd1 == both_sd[1]) {
+        sd2 = both_sd[2]
+      } else {
+        sd2 = both_sd[1]
+      }
+
+      fake_good <- dplyr::data_frame(fake_rating = rnorm(n = (dim(good)[1]/2), 
+                              mean = mn1, sd = sd1),
+                              fake_language = "good")
+                      
+      fake_bad <- dplyr::data_frame(fake_rating = rnorm(n = (dim(bad)[1]/2), 
+                            mean = mn2, sd = sd2),
+                            fake_language = "bad")
+    
+      
+      H2_data <- dplyr::bind_rows(fake_good,
+                                  fake_bad)
+      
+      coef_permuted <- coef(lm(fake_rating ~ 
+                               fake_language, 
+                               data = H2_data))[2]
+      coeficients_H2[i] <- coef_permuted
+}
+
 ```
 
 
-* DVA
+### Comparing the two sampling distributions
+```{r include = FALSE}
+
+coefs_table <- dplyr::data_frame(H1 = coeficients_H1,
+                                 H2 = coeficients_H2)
+coefs_joined <- tidyr::gather(coefs_table,
+                                 `H1`,
+                                 `H2`,
+                                 key = "Hypothesis",
+                                 value = "Coef")
+
+plot_coefs_H1H2 <- ggplot2::ggplot(coefs_joined, 
+                                 ggplot2::aes(x=Coef, 
+                                              fill=Hypothesis)) +
+                            ggplot2::geom_histogram(
+                              colour = "black", position="identity",
+                              bins = 80) +
+                  ggplot2::coord_cartesian(
+                    xlim = c(-10,75)
+                  )
+```
+
+```{r echo = FALSE}
+plot_coefs_H1H2
+```
+
+
+
+### H1 and H2 under the assumption of being closer to the observed data distribution
+
+ 
+```{r include = FALSE}
+coeficients_H3 <- rep(0, 9999)
+
+for (i in 1:9999) {
+      mn1 <- 100
+      mn2 <- 0
+      
+      sd1 <- sample(both_sd, 1)
+      if (sd1 == both_sd[1]) {
+        sd2 = both_sd[2]
+      } else {
+        sd2 = both_sd[1]
+      }
+
+      fake_good <- dplyr::data_frame(fake_rating = rnorm(n = (dim(good)[1]/2), 
+                              mean = mn1, sd = sd1),
+                              fake_language = "good")
+                      
+      fake_bad <- dplyr::data_frame(fake_rating = rnorm(n = (dim(bad)[1]/2), 
+                            mean = mn2, sd = sd2),
+                            fake_language = "bad")
+      
+      H3_data_obs <- dplyr::bind_rows(fake_good,
+                                  fake_bad)
+      
+      H3_data_obs_fake <- H3_data_obs %>%
+                            dplyr::mutate(
+                              similar_rating_to_observed = 
+                                ifelse(fake_rating < 0, 0, 
+                              ifelse(fake_rating > 100,
+                              100, fake_rating)))
+      
+      coef_permuted <- coef(lm(similar_rating_to_observed ~ 
+                               fake_language, 
+                               data = H3_data_obs_fake))[2]
+      coeficients_H3[i] <- coef_permuted
+}
+```
+
+For the purpose of making the simulated data more similar to what is observed, I now slightly change the data for Hypothesis 2. (I call it H3) I define the means for the two different groups as either `0` for `bad` and `100` for `good`. I obtain two distributions that are centered around 0 and 100. The standard deviations stay the same as before.
+
+Additionally, I change the values that are below 0 to 0 and those that are above 100 to 100. I thus obtain a scale of ratings from 0 to 100, just like in the observed data.
+
+One possible distribution of newly obtained data is as follows:
+
+```{r include = FALSE}
+simulated_H3_plot <- ggplot2::ggplot(H3_data_obs_fake, 
+                                 ggplot2::aes(x=similar_rating_to_observed, 
+                                              fill=fake_language)) +
+                       ggplot2::geom_histogram(
+                          alpha=0.4, position="identity")
+```
+
+```{r echo=FALSE}
+simulated_H3_plot
+```
+
+There is now many values at 0 or at 100. This is similar to the observed distributions.
+Now, if we look at the difference of the coeficients distributions, we see that beta 1 for H3 is a bit higher (around 80). This is due to different two new means (0 and 100). I have also tried to have the same mean difference as before and the result is similar but less clear, so I have decided to keep the means as 0 and 100.
+
+```{r include = FALSE}
+
+coefs_table2 <- dplyr::data_frame(H1 = coeficients_H1,
+                                 H3 = coeficients_H3)
+coefs_joined2 <- tidyr::gather(coefs_table2,
+                                 `H1`,
+                                 `H3`,
+                                 key = "Hypothesis",
+                                 value = "Coef")
+
+plot_coefs_H1H3 <- ggplot2::ggplot(coefs_joined2, 
+                                 ggplot2::aes(x=Coef, 
+                                              fill=Hypothesis)) +
+                            ggplot2::geom_histogram(
+                              colour = "black", position="identity",
+                              bins = 80) +
+                  ggplot2::coord_cartesian(
+                    xlim = c(-10,95)
+                  )
+```
+
 
 ```{r}
-# odrezi vrednosti < 0 in > 100
-# pokazi razliko med obema distrib.
+plot_coefs_H1H3
 ```
 
-Ce sta distribuciji blize temu, kar opazimo v resnicnih podatkih, potem to ni vec normalen zakon/Gauss, ker preprosto nimamo srednje vrednosti, ki centrira vse vrednosti naokoli z neko razliko. Imamo veliko nicel in veliko stotk, malo po in pred tem. Ce to vzamemo kot nrm. zakon, potem sklepamo, da so vrednosti tudi naokoli 0 in 100. Srednja vrednost zagotovo ne bo tam, kjer jo bomo ocenili glede na ocenjevanje, ce vzamemo to got gaussovsko distribucijo. Ja, je riziko
+If I look at the distribution of permuted coefficients, I could say that there is indeed a big difference betwen H1 (which supposes 0 difference in the mean for the language being good or bad) and h2 (a big difference in means). Under the assumption that the data is normally distributed for H2, I could conclude that indeed this linear model is valid and shows that the dependent variable y (`rating`) changes according to the predictor x (`language`).
+
+However, looking at the histogram above and seeing the plot of the H3, I see clearly that the distribution of the two groups is not normal. The mean can no longer be at 0 or 100, because I changed the negative values to 0 and the values above 100 to 100. The distributions are no longer centered around their means. I can calculate new means with `r`, but this is useless, just as supposing that the distributions are normal. The most values should be centered around their means, but they are not: they are either 0 or 100.
+
+The serious risk here is, I think, that I am presupposing these distributions are normal and that their values will be centered around the calculated means. I then fit the data into a linear model and confirm that indeed, there is a big mean difference and the `language` has an effect on the `rating`. This is only partially true: in the observed data, we can see that even grammatically bad sentences are sometimes judged as good and can obtain any score between 0-100. Most values are at 0, but 0 is not the mean of the data. It cannot be, as is is the lowest value possible (rating numbers have to be limited somehow, here 1 probably means completely unacceptable/ungrammatical). 
+For each permuted data, beta 1 is calculated on the wrongly defined means. Therefore, these results are wrong too.
 
 
 ## Question 3
@@ -151,5 +287,7 @@ Ce sta distribuciji blize temu, kar opazimo v resnicnih podatkih, potem to ni ve
 ```{r}
 # 3 observations only
 # ja zagotovo mora biti popolnoma izkrivljeno
+
+
 ```
 
