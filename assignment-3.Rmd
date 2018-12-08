@@ -11,6 +11,10 @@ library(magrittr)
 library(dplyr)
 ```
 
+```{r}
+source("functions3.R")
+```
+
 
 ```{r include=FALSE}
 
@@ -30,32 +34,23 @@ MOP_data <- clarkjudgments::acceptability %>%
 plot_MOP_hist <- ggplot2::ggplot(MOP_data, 
                                  ggplot2::aes(x=rating, 
                                               fill=language)) +
-  ggplot2::geom_histogram(
-    alpha=0.4, position="identity")
-
-#################################
-#### recode language to 0 and 1
-################################
+                ggplot2::geom_histogram(
+                  alpha=0.4, position="identity")
 
 
+# recode language to 0 and 1
 MOP_linear <- MOP_data %>%
   dplyr::mutate(
     language_lin = ifelse(
       language == "adger-good", 1, 0
-    )
-  )
+    ))
 
-##############################
-#### linear model for MOP_data
-##############################
 
+# linear model for MOP_data
 lm_lin <- lm(rating ~ language_lin, data = MOP_linear)
 
 
-###############################################
-#### plot with dots for supposedly linear data
-###############################################
-
+# plot with dots for supposedly linear data
 plot_linear_points <- ggplot2::ggplot(MOP_linear, 
                                       ggplot2::aes(y=rating, 
                                                    x=language_lin)) +
@@ -70,7 +65,7 @@ plot_linear_points <- ggplot2::ggplot(MOP_linear,
 ```
 
 
-```{r}
+```{r echo=FALSE}
 plot_MOP_hist
 plot_linear_points
 ```
@@ -89,7 +84,7 @@ Another problem for fitting this data into a linear model is also that there are
 ### H1
                     
 ```{r}
-coeficients_H1 <- rep(0, 9999)
+coefficients_H1 <- rep(0, 9999)
 for (i in 1:9999) {
           permuted_MOP <- MOP_data %>%
                     dplyr::mutate(
@@ -99,7 +94,7 @@ for (i in 1:9999) {
           coef_permuted <- coef(lm(permuted_rating ~ 
                                    language, 
                                    data = permuted_MOP))[2]
-          coeficients_H1[i] <- coef_permuted
+          coefficients_H1[i] <- coef_permuted
 }
 
 ```
@@ -123,155 +118,67 @@ both_sd = c(sd_good, sd_bad)
 observed_mean_diff <- mean(good$rating) - mean(bad$rating)
 ```
 
+
 ```{r}
-coeficients_H2 <- rep(0, 9999)
-
-for (i in 1:9999) {
-      mn1 <- sample(0:100, 1)
-      mn2 <- mn1 - observed_mean_diff
-      sd1 <- sample(both_sd, 1)
-      if (sd1 == both_sd[1]) {
-        sd2 = both_sd[2]
-      } else {
-        sd2 = both_sd[1]
-      }
-
-      fake_good <- dplyr::data_frame(fake_rating = rnorm(n = (dim(good)[1]/2), 
-                              mean = mn1, sd = sd1),
-                              fake_language = "good")
-                      
-      fake_bad <- dplyr::data_frame(fake_rating = rnorm(n = (dim(bad)[1]/2), 
-                            mean = mn2, sd = sd2),
-                            fake_language = "bad")
-    
-      
-      H2_data <- dplyr::bind_rows(fake_good,
-                                  fake_bad)
-      
-      coef_permuted <- coef(lm(fake_rating ~ 
-                               fake_language, 
-                               data = H2_data))[2]
-      coeficients_H2[i] <- coef_permuted
-}
-
+coefficients_H2 <- permute_for_h2(
+                           observed_mean_diff, 
+                           both_sd,
+                           (dim(good)[1]/2),
+                           (dim(bad)[1]/2),
+                           0)
 ```
 
 
 ### Comparing the two sampling distributions
-```{r include = FALSE}
 
-coefs_table <- dplyr::data_frame(H1 = coeficients_H1,
-                                 H2 = coeficients_H2)
-coefs_joined <- tidyr::gather(coefs_table,
-                                 `H1`,
-                                 `H2`,
-                                 key = "Hypothesis",
-                                 value = "Coef")
 
-plot_coefs_H1H2 <- ggplot2::ggplot(coefs_joined, 
-                                 ggplot2::aes(x=Coef, 
-                                              fill=Hypothesis)) +
-                            ggplot2::geom_histogram(
-                              colour = "black", position="identity",
-                              bins = 80) +
-                  ggplot2::coord_cartesian(
-                    xlim = c(-10,75)
-                  )
+```{r include=FALSE}
+plot_H1_H2 <- plot_permuted_data(coefficients_H1,
+                                 coefficients_H2,
+                                 1,
+                                 c(-10,75))
 ```
 
-```{r echo = FALSE}
-plot_coefs_H1H2
+```{r echo=FALSE}
+plot_H1_H2
 ```
+
 
 
 
 ### H1 and H2 under the assumption of being closer to the observed data distribution
 
- 
-```{r include = FALSE}
-coeficients_H3 <- rep(0, 9999)
-
-for (i in 1:9999) {
-      mn1 <- 100
-      mn2 <- 0
-      
-      sd1 <- sample(both_sd, 1)
-      if (sd1 == both_sd[1]) {
-        sd2 = both_sd[2]
-      } else {
-        sd2 = both_sd[1]
-      }
-
-      fake_good <- dplyr::data_frame(fake_rating = rnorm(n = (dim(good)[1]/2), 
-                              mean = mn1, sd = sd1),
-                              fake_language = "good")
-                      
-      fake_bad <- dplyr::data_frame(fake_rating = rnorm(n = (dim(bad)[1]/2), 
-                            mean = mn2, sd = sd2),
-                            fake_language = "bad")
-      
-      H3_data_obs <- dplyr::bind_rows(fake_good,
-                                  fake_bad)
-      
-      H3_data_obs_fake <- H3_data_obs %>%
-                            dplyr::mutate(
-                              similar_rating_to_observed = 
-                                ifelse(fake_rating < 0, 0, 
-                              ifelse(fake_rating > 100,
-                              100, fake_rating)))
-      
-      coef_permuted <- coef(lm(similar_rating_to_observed ~ 
-                               fake_language, 
-                               data = H3_data_obs_fake))[2]
-      coeficients_H3[i] <- coef_permuted
-}
+```{r}
+coefficients_H3 <- permute_for_h2(
+                           observed_mean_diff, 
+                           both_sd,
+                           (dim(good)[1]/2),
+                           (dim(bad)[1]/2),
+                           1)
 ```
+
+
 
 For the purpose of making the simulated data more similar to what is observed, I now slightly change the data for Hypothesis 2. (I call it H3) I define the means for the two different groups as either `0` for `bad` and `100` for `good`. I obtain two distributions that are centered around 0 and 100. The standard deviations stay the same as before.
 
 Additionally, I change the values that are below 0 to 0 and those that are above 100 to 100. I thus obtain a scale of ratings from 0 to 100, just like in the observed data.
 
-One possible distribution of newly obtained data is as follows:
 
-```{r include = FALSE}
-simulated_H3_plot <- ggplot2::ggplot(H3_data_obs_fake, 
-                                 ggplot2::aes(x=similar_rating_to_observed, 
-                                              fill=fake_language)) +
-                       ggplot2::geom_histogram(
-                          alpha=0.4, position="identity")
-```
-
-```{r echo=FALSE}
-simulated_H3_plot
-```
-
-There is now many values at 0 or at 100. This is similar to the observed distributions.
+There are now many values at 0 or at 100. This is similar to the observed distributions.
 Now, if we look at the difference of the coeficients distributions, we see that beta 1 for H3 is a bit higher (around 80). This is due to different two new means (0 and 100). I have also tried to have the same mean difference as before and the result is similar but less clear, so I have decided to keep the means as 0 and 100.
 
 ```{r include = FALSE}
 
-coefs_table2 <- dplyr::data_frame(H1 = coeficients_H1,
-                                 H3 = coeficients_H3)
-coefs_joined2 <- tidyr::gather(coefs_table2,
-                                 `H1`,
-                                 `H3`,
-                                 key = "Hypothesis",
-                                 value = "Coef")
+plot_H1_H3 <- plot_permuted_data(coefficients_H1,
+                                 coefficients_H3,
+                                 1,
+                                 c(-10,95))
 
-plot_coefs_H1H3 <- ggplot2::ggplot(coefs_joined2, 
-                                 ggplot2::aes(x=Coef, 
-                                              fill=Hypothesis)) +
-                            ggplot2::geom_histogram(
-                              colour = "black", position="identity",
-                              bins = 80) +
-                  ggplot2::coord_cartesian(
-                    xlim = c(-10,95)
-                  )
 ```
 
 
-```{r}
-plot_coefs_H1H3
+```{r echo=FALSE}
+plot_H1_H3
 ```
 
 If I look at the distribution of permuted coefficients, I could say that there is indeed a big difference betwen H1 (which supposes 0 difference in the mean for the language being good or bad) and h2 (a big difference in means). Under the assumption that the data is normally distributed for H2, I could conclude that indeed this linear model is valid and shows that the dependent variable y (`rating`) changes according to the predictor x (`language`).
@@ -284,10 +191,68 @@ For each permuted data, beta 1 is calculated on the wrongly defined means. There
 
 ## Question 3
 
-```{r}
-# 3 observations only
-# ja zagotovo mora biti popolnoma izkrivljeno
+### H1
 
+```{r}
+coefficients_H1_3obs <- rep(0, 9999)
+for (i in 1:9999) {
+          permuted_MOP <- MOP_data %>%
+                    dplyr::mutate(
+                    permuted_rating = 
+                      sample(rating, dim(MOP_data)[1])
+                    )
+          permuted_MOP_3obs <- permuted_MOP %>% 
+                    dplyr::group_by(language) %>%
+                    dplyr::sample_n(3) %>%
+                    dplyr::ungroup()
+          
+          
+          coef_permuted <- coef(lm(permuted_rating ~ 
+                                   language, 
+                                   data = permuted_MOP_3obs))[2]
+          coefficients_H1_3obs[i] <- coef_permuted
+}
 
 ```
 
+
+### H2
+
+```{r}
+coefficients_H2_3obs_adjusted <- permute_for_h2(
+                           observed_mean_diff, 
+                           both_sd,
+                           3,
+                           3,
+                           1)
+
+coefficients_H2_3obs <- permute_for_h2(
+                           observed_mean_diff, 
+                           both_sd,
+                           3,
+                           3,
+                           0)
+```
+
+
+
+```{r include = FALSE}
+plot_H1_H2_3obs_adjusted <- plot_permuted_data(coefficients_H1_3obs,
+                                 coefficients_H2_3obs_adjusted,
+                                 0.3,
+                                 c(-130,130))
+
+plot_H1_H2_3obs <- plot_permuted_data(coefficients_H1_3obs,
+                                 coefficients_H2_3obs,
+                                 0.3,
+                                 c(-130,130))
+```
+
+```{r echo=FALSE}
+plot_H1_H2_3obs_adjusted
+plot_H1_H2_3obs
+```
+
+Still supposing that my data is normal, I now have much more difficulties in concluding that the language has an effect on the rating. For `plot_H1_H2_3obs_adjusted` (which has the mean 0 for one distribution, 100 for the other, as well as the values below 0 and above 100 adjusted), the H1 beta 1 coefficient is centered around 0 as before, but the variance is much larger. The H2 beta 1 coefficient is centered quite far away from 0, but the two distributions overlap.
+
+If I chose the means for H2 according to the difference of the observed means difference, the two disctributions superpose even more (`plot_H1_H2_3obs`). It is now much less evident if the language has any influence on the rating.
