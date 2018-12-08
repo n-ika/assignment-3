@@ -19,6 +19,7 @@ permute_for_h2 <- function(observed_mean_diff,
                            n_obs_bad,
                            adjust_values) {
   coefficients_H2 <- rep(0, 9999)
+  set.seed(29)
   for (i in 1:9999) {
     if (adjust_values > 1) {
       mn1 <- 100
@@ -70,6 +71,7 @@ permute_for_h2 <- function(observed_mean_diff,
     coefficients_H2[i] <- coef_permuted
   }
   
+  set.seed(NULL)
   return(coefficients_H2)
 }
 
