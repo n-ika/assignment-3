@@ -7,8 +7,11 @@
 #   - number of observations:
 #   either length of the table of filtered good/bad
 #   observations or a number (3)
-#   - adjust values: remove values below 0 and above
-#   100 if 1
+#   - adjust values: 
+#       if 1 or more, will remove values below 0
+#       and above 100;
+#       if more than 1, will also set means
+#       to 100 (for "good") and 0 (for "bad")
 
 permute_for_h2 <- function(observed_mean_diff, 
                            both_sd,
@@ -17,7 +20,7 @@ permute_for_h2 <- function(observed_mean_diff,
                            adjust_values) {
   coefficients_H2 <- rep(0, 9999)
   for (i in 1:9999) {
-    if (adjust_values == 1) {
+    if (adjust_values > 1) {
       mn1 <- 100
       mn2 <- 0
     } else{
@@ -47,7 +50,7 @@ permute_for_h2 <- function(observed_mean_diff,
     H2_data <- dplyr::bind_rows(fake_good,
                                 fake_bad)
     
-    if (adjust_values == 1) {
+    if (adjust_values >= 1) {
       H2_data <- H2_data %>%
         dplyr::mutate(
           similar_rating_to_observed = 

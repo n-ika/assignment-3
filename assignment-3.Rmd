@@ -11,7 +11,7 @@ library(magrittr)
 library(dplyr)
 ```
 
-```{r}
+```{r include=FALSE}
 source("functions3.R")
 ```
 
@@ -34,8 +34,10 @@ MOP_data <- clarkjudgments::acceptability %>%
 plot_MOP_hist <- ggplot2::ggplot(MOP_data, 
                                  ggplot2::aes(x=rating, 
                                               fill=language)) +
-                ggplot2::geom_histogram(
-                  alpha=0.4, position="identity")
+                 ggplot2::geom_histogram(
+                                 alpha=0.4,
+                                 bins = 50,
+                                 position="identity")
 
 
 # recode language to 0 and 1
@@ -84,6 +86,9 @@ Another problem for fitting this data into a linear model is also that there are
 ### H1
                     
 ```{r}
+# Permute the data under the H1 where
+# the difference in means is 0 or somewhere close
+
 coefficients_H1 <- rep(0, 9999)
 for (i in 1:9999) {
           permuted_MOP <- MOP_data %>%
@@ -103,6 +108,7 @@ for (i in 1:9999) {
 ### H2
 
 ```{r}
+# Filter the data according to the language value
 good <- MOP_data %>%
               dplyr::filter(
               language == "adger-good"
@@ -112,14 +118,20 @@ bad <- MOP_data %>%
               language == "adger-bad"
                 )
 
+# Find the observed SD values and store them in a vector
 sd_good <- sd(good$rating)
 sd_bad <- sd(bad$rating)
 both_sd = c(sd_good, sd_bad)
+
+# Store the observed mean difference
 observed_mean_diff <- mean(good$rating) - mean(bad$rating)
 ```
 
 
 ```{r}
+# The H2 permutation where difference in means is the same
+# as observed mean difference and standard deviation is
+# one of the two observed standard deviations
 coefficients_H2 <- permute_for_h2(
                            observed_mean_diff, 
                            both_sd,
@@ -149,6 +161,26 @@ plot_H1_H2
 ### H1 and H2 under the assumption of being closer to the observed data distribution
 
 ```{r}
+# The H2 permutation where the mean for "good" is 100
+# and the mean for "bad" is 0 and standard deviation is
+# one of the two observed standard deviations.
+
+# Additionally, define all values below 0 as 0
+# and all values above 100 as 100.
+coefficients_H3_adjusted <- permute_for_h2(
+                           observed_mean_diff, 
+                           both_sd,
+                           (dim(good)[1]/2),
+                           (dim(bad)[1]/2),
+                           2)
+
+# The H2 permutation where the difference in means
+# is the same as the *observed difference in means*,
+# standard deviation is one of the two observed 
+# standard deviations.
+
+# Additionally, define all values below 0 as 0
+# and all values above 100 as 100.
 coefficients_H3 <- permute_for_h2(
                            observed_mean_diff, 
                            both_sd,
@@ -163,22 +195,25 @@ For the purpose of making the simulated data more similar to what is observed, I
 
 Additionally, I change the values that are below 0 to 0 and those that are above 100 to 100. I thus obtain a scale of ratings from 0 to 100, just like in the observed data.
 
-
 There are now many values at 0 or at 100. This is similar to the observed distributions.
 Now, if we look at the difference of the coeficients distributions, we see that beta 1 for H3 is a bit higher (around 80). This is due to different two new means (0 and 100). I have also tried to have the same mean difference as before and the result is similar but less clear, so I have decided to keep the means as 0 and 100.
 
 ```{r include = FALSE}
-
 plot_H1_H3 <- plot_permuted_data(coefficients_H1,
                                  coefficients_H3,
                                  1,
                                  c(-10,95))
 
+plot_H1_H3_adjusted <- plot_permuted_data(coefficients_H1,
+                                 coefficients_H3_adjusted,
+                                 1,
+                                 c(-10,95))
 ```
 
 
 ```{r echo=FALSE}
 plot_H1_H3
+plot_H1_H3_adjusted
 ```
 
 If I look at the distribution of permuted coefficients, I could say that there is indeed a big difference betwen H1 (which supposes 0 difference in the mean for the language being good or bad) and h2 (a big difference in means). Under the assumption that the data is normally distributed for H2, I could conclude that indeed this linear model is valid and shows that the dependent variable y (`rating`) changes according to the predictor x (`language`).
@@ -194,6 +229,8 @@ For each permuted data, beta 1 is calculated on the wrongly defined means. There
 ### H1
 
 ```{r}
+# H1 with only 3 observations for each language
+# type, taken from the real data
 coefficients_H1_3obs <- rep(0, 9999)
 for (i in 1:9999) {
           permuted_MOP <- MOP_data %>%
@@ -219,19 +256,25 @@ for (i in 1:9999) {
 ### H2
 
 ```{r}
+# H2 with mean for "good" as 100 and mean for
+# "bad" as 0, values are adjusted to resemble
+# the real data more
 coefficients_H2_3obs_adjusted <- permute_for_h2(
                            observed_mean_diff, 
                            both_sd,
                            3,
                            3,
-                           1)
+                           2)
 
+# H2 with the difference of the means of two groups
+# that is the same as the observed mean difference
+# and the values are adjusted
 coefficients_H2_3obs <- permute_for_h2(
                            observed_mean_diff, 
                            both_sd,
                            3,
                            3,
-                           0)
+                           1)
 ```
 
 
@@ -240,12 +283,12 @@ coefficients_H2_3obs <- permute_for_h2(
 plot_H1_H2_3obs_adjusted <- plot_permuted_data(coefficients_H1_3obs,
                                  coefficients_H2_3obs_adjusted,
                                  0.3,
-                                 c(-130,130))
+                                 c(-130,150))
 
 plot_H1_H2_3obs <- plot_permuted_data(coefficients_H1_3obs,
                                  coefficients_H2_3obs,
                                  0.3,
-                                 c(-130,130))
+                                 c(-130,150))
 ```
 
 ```{r echo=FALSE}
@@ -255,4 +298,4 @@ plot_H1_H2_3obs
 
 Still supposing that my data is normal, I now have much more difficulties in concluding that the language has an effect on the rating. For `plot_H1_H2_3obs_adjusted` (which has the mean 0 for one distribution, 100 for the other, as well as the values below 0 and above 100 adjusted), the H1 beta 1 coefficient is centered around 0 as before, but the variance is much larger. The H2 beta 1 coefficient is centered quite far away from 0, but the two distributions overlap.
 
-If I chose the means for H2 according to the difference of the observed means difference, the two disctributions superpose even more (`plot_H1_H2_3obs`). It is now much less evident if the language has any influence on the rating.
+If I chose the means for H2 according to the difference of the observed means difference, the two disctributions superpose even more (`plot_H1_H2_3obs`). The values below 0 are set to 0 and those above 100 to 100. It is now much less evident if the language has any influence on the rating.
