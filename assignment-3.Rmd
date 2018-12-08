@@ -189,15 +189,6 @@ coefficients_H3 <- permute_for_h2(
                            1)
 ```
 
-
-
-For the purpose of making the simulated data more similar to what is observed, I now slightly change the data for Hypothesis 2. (I call it H3) I define the means for the two different groups as either `0` for `bad` and `100` for `good`. I obtain two distributions that are centered around 0 and 100. The standard deviations stay the same as before.
-
-Additionally, I change the values that are below 0 to 0 and those that are above 100 to 100. I thus obtain a scale of ratings from 0 to 100, just like in the observed data.
-
-There are now many values at 0 or at 100. This is similar to the observed distributions.
-Now, if we look at the difference of the coeficients distributions, we see that beta 1 for H3 is a bit higher (around 80). This is due to different two new means (0 and 100). I have also tried to have the same mean difference as before and the result is similar but less clear, so I have decided to keep the means as 0 and 100.
-
 ```{r include = FALSE}
 plot_H1_H3 <- plot_permuted_data(coefficients_H1,
                                  coefficients_H3,
@@ -211,10 +202,17 @@ plot_H1_H3_adjusted <- plot_permuted_data(coefficients_H1,
 ```
 
 
+For the purpose of making the simulated data more similar to what is observed, I now slightly change the data for Hypothesis 2. (I call it H3) I define the means for the two different groups as either `0` for `bad` and `100` for `good`. I obtain two distributions that are centered around 0 and 100. The standard deviations stay the same as before.
+
+Additionally, I change the values that are below 0 to 0 and those that are above 100 to 100. I thus obtain a scale of ratings from 0 to 100, just like in the observed data.
+
+There are now many values at 0 or at 100. This is similar to the observed distributions.
+Now, if we look at the difference of the coeficients distributions, we see that beta 1 for H3 is a bit higher (around 80). This is due to different two new means (0 and 100). 
+
 ```{r echo=FALSE}
-plot_H1_H3
 plot_H1_H3_adjusted
 ```
+
 
 If I look at the distribution of permuted coefficients, I could say that there is indeed a big difference betwen H1 (which supposes 0 difference in the mean for the language being good or bad) and h2 (a big difference in means). Under the assumption that the data is normally distributed for H2, I could conclude that indeed this linear model is valid and shows that the dependent variable y (`rating`) changes according to the predictor x (`language`).
 
@@ -222,6 +220,16 @@ However, looking at the histogram above and seeing the plot of the H3, I see cle
 
 The serious risk here is, I think, that I am presupposing these distributions are normal and that their values will be centered around the calculated means. I then fit the data into a linear model and confirm that indeed, there is a big mean difference and the `language` has an effect on the `rating`. This is only partially true: in the observed data, we can see that even grammatically bad sentences are sometimes judged as good and can obtain any score between 0-100. Most values are at 0, but 0 is not the mean of the data. It cannot be, as is is the lowest value possible (rating numbers have to be limited somehow, here 1 probably means completely unacceptable/ungrammatical). 
 For each permuted data, beta 1 is calculated on the wrongly defined means. Therefore, these results are wrong too.
+
+
+I have also tried to have the same mean difference as observed in the data and changed the values below 0 to 0 and above 100 to 100. Because my code assigns one mean a random value from 0 to 100, and the other mean as a substraction from this mean of the mean difference observed, the values might be often below 0 or above 100. The result is less clear, so for the interpretation I have decided to keep the means at 0 and 100. From the plot below, I am not sure what to conclude - the coefficients are not normally distributed.
+
+
+```{r echo=FALSE}
+plot_H1_H3
+```
+
+
 
 
 ## Question 3

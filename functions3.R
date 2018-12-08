@@ -102,12 +102,13 @@ plot_permuted_data <- function(
                                            ggplot2::aes(
                                              x=Coef, 
                                              fill=Hypothesis)) +
-          ggplot2::geom_histogram(
-            colour = "black", position="identity",
-            bins = 80,
-            alpha = transparency) +
-          ggplot2::coord_cartesian(
-            xlim = vector_size)
+                          ggplot2::geom_histogram(
+                            colour = "black", 
+                            position="identity",
+                            bins = 80,
+                            alpha = transparency) +
+                          ggplot2::coord_cartesian(
+                            xlim = vector_size)
         
         return(plot_coefs_H1H2)
 }
