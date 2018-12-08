@@ -1,7 +1,7 @@
 ---
 title: "Assignment 3"
 author: "Nika Jurov"
-date: "12/3/2018"
+date: "12/8/2018"
 output: html_document
 ---
 
@@ -299,11 +299,16 @@ plot_H1_H2_3obs <- plot_permuted_data(coefficients_H1_3obs,
                                  c(-130,150))
 ```
 
+Still supposing that my data is normal, I now have much more difficulties in concluding that the language has an effect on the rating. For `plot_H1_H2_3obs_adjusted` (which has the mean 0 for one distribution, 100 for the other, as well as the values below 0 and above 100 adjusted), the H1 beta 1 coefficient is centered around 0 as before, but the variance is much larger. The H2 beta 1 coefficient is centered quite far away from 0, but the two distributions overlap.
+
 ```{r echo=FALSE}
 plot_H1_H2_3obs_adjusted
+```
+
+If I chose the means for H2 according to the difference of the observed means difference, the two disctributions are even more superposed (`plot_H1_H2_3obs`). The values below 0 are set to 0 and those above 100 to 100. It is now much less evident if the language has any influence on the rating.
+
+```{r echo=FALSE}
 plot_H1_H2_3obs
 ```
 
-Still supposing that my data is normal, I now have much more difficulties in concluding that the language has an effect on the rating. For `plot_H1_H2_3obs_adjusted` (which has the mean 0 for one distribution, 100 for the other, as well as the values below 0 and above 100 adjusted), the H1 beta 1 coefficient is centered around 0 as before, but the variance is much larger. The H2 beta 1 coefficient is centered quite far away from 0, but the two distributions overlap.
-
-If I chose the means for H2 according to the difference of the observed means difference, the two disctributions superpose even more (`plot_H1_H2_3obs`). The values below 0 are set to 0 and those above 100 to 100. It is now much less evident if the language has any influence on the rating.
+All in all, if I include only 3 observations per each sampled distribution according to either H1 or H2, the previous difference in coefficients distribution is much weaker or even barely existent. Assuming that this was normally distributed data and that I could  accordingly interpret these plots, I cannot say that there is a language effect on the rating.
