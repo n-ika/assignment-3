@@ -43,9 +43,8 @@ plot_MOP_hist <- ggplot2::ggplot(MOP_data,
 # recode language to 0 and 1
 MOP_linear <- MOP_data %>%
   dplyr::mutate(
-    language_lin = ifelse(
-      language == "adger-good", 1, 0
-    ))
+    language_lin = 
+      ifelse(language == "adger-good", 1, 0))
 
 
 # linear model for MOP_data
@@ -56,14 +55,12 @@ lm_lin <- lm(rating ~ language_lin, data = MOP_linear)
 plot_linear_points <- ggplot2::ggplot(MOP_linear, 
                                       ggplot2::aes(y=rating, 
                                                    x=language_lin)) +
-                                ggplot2::geom_point(
+                      ggplot2::geom_point(
                                   alpha=0.1,
-                                  colour="darkblue"
-                                ) +
-                                ggplot2::geom_abline(
+                                  colour="darkblue") +
+                      ggplot2::geom_abline(
                                   intercept = coef(lm_lin)[1],
-                                  slope = coef(lm_lin)[2]
-                                )
+                                  slope = coef(lm_lin)[2])
 ```
 
 
@@ -94,11 +91,12 @@ for (i in 1:9999) {
           permuted_MOP <- MOP_data %>%
                     dplyr::mutate(
                     permuted_rating = 
-                      sample(rating, dim(MOP_data)[1])
-                    )
+                      sample(rating, dim(MOP_data)[1]))
+          
           coef_permuted <- coef(lm(permuted_rating ~ 
                                    language, 
                                    data = permuted_MOP))[2]
+          
           coefficients_H1[i] <- coef_permuted
 }
 
@@ -111,12 +109,10 @@ for (i in 1:9999) {
 # Filter the data according to the language value
 good <- MOP_data %>%
               dplyr::filter(
-              language == "adger-good"
-                )
+              language == "adger-good")
 bad <- MOP_data %>%
               dplyr::filter(
-              language == "adger-bad"
-                )
+              language == "adger-bad")
 
 # Find the observed SD values and store them in a vector
 sd_good <- sd(good$rating)
@@ -244,13 +240,12 @@ for (i in 1:9999) {
           permuted_MOP <- MOP_data %>%
                     dplyr::mutate(
                     permuted_rating = 
-                      sample(rating, dim(MOP_data)[1])
-                    )
+                      sample(rating, dim(MOP_data)[1]))
+          
           permuted_MOP_3obs <- permuted_MOP %>% 
                     dplyr::group_by(language) %>%
                     dplyr::sample_n(3) %>%
                     dplyr::ungroup()
-          
           
           coef_permuted <- coef(lm(permuted_rating ~ 
                                    language, 
